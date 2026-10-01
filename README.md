@@ -58,6 +58,8 @@ If adding the marketplace fails with an SSH error (no SSH key for GitHub), use t
 
 In a real run with the plugin, Claude made no tool calls and still answered a new "how long does shipping to Canada take?" comment with "Thanks for asking. Shipping to Canada usually takes 5-7 business days for the lavender set.": the shipping time from a past edit (reason: don't promise speed) and no exclamation marks, from a stored rule.
 
+![A real run with the plugin: the hooks add a stored rule and a past edit, Claude makes no tool calls, and the reply follows both](img/plugin-real-run.png)
+
 Claude Code, MCP server only:
 
 ```
