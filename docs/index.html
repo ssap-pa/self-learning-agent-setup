@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Agent Feedback Loop Demo</title>
-<meta name="description" content="A self-learning agent loop running in your browser: Postgres (PGlite) + pgvector in WebAssembly. Store approve / edit / reject decisions and see what the agent reads before its next draft.">
+<meta name="description" content="A self-learning agent loop running in your browser: Postgres (PGlite) + pgvector + a small embedding model, all in WebAssembly. Store approve / edit / reject decisions and see what the agent reads before its next draft.">
 <meta property="og:title" content="Your agent should remember your corrections">
 <meta property="og:description" content="A self-learning agent loop running in your browser: Postgres (PGlite) + pgvector. Store approve / edit / reject decisions and see what the agent reads before its next draft.">
 <meta property="og:image" content="https://ssap-pa.github.io/self-learning-agent-setup/og.png">
@@ -54,7 +54,7 @@
 <body>
 <main>
   <h1>Your agent should remember your corrections</h1>
-  <p>This page runs a real Postgres (<a href="https://pglite.dev">PGlite</a>, compiled to WebAssembly) with <b>pgvector</b> inside this tab. Every approve, edit and reject is stored with an embedding of the task. Before the next draft, the agent pulls feedback from <i>similar</i> past tasks into its prompt. Nothing leaves your browser.</p>
+  <p>This page runs a real Postgres (<a href="https://pglite.dev">PGlite</a>, compiled to WebAssembly) with <b>pgvector</b> and a small embedding model, all inside this tab. Every approve, edit and reject is stored with an embedding of the task. Before the next draft, the agent pulls feedback from <i>similar</i> past tasks into its prompt. Nothing leaves your browser.</p>
   <p><span id="status" class="status">Starting Postgres in your browser…</span></p>
 
   <h2>1. What the agent reads before drafting</h2>
@@ -64,7 +64,7 @@
   </div>
   <div class="row" style="margin-top:8px">
     <button class="primary" id="ask" disabled>Show the agent's context</button>
-    <span class="muted" style="font-size:.85rem">Try: "Could you gift wrap a candle?" or "What wax do you use?"</span>
+    <span class="muted" style="font-size:.85rem">Try: "Can I get it wrapped as a present?" (no words in common with the stored gift-wrap question) or "What wax do you use?"</span>
   </div>
   <pre id="context">…</pre>
 
@@ -87,7 +87,7 @@
     <div class="row" style="margin-top:10px"><button class="primary" id="add" disabled>Store decision</button><span id="addmsg" class="muted"></span></div>
   </div>
 
-  <p class="muted" style="font-size:.88rem">This page embeds text by hashing words, so "similar" means shared words. In production you'd use a real embedding model (the repo's loop takes any embed function). Plain approvals are stored but not retrieved: they carry no lesson.</p>
+  <p class="muted" style="font-size:.88rem">Embeddings come from <b>all-MiniLM-L6-v2</b> running in this tab (<a href="https://huggingface.co/docs/transformers.js">Transformers.js</a>, a 23 MB download the first time), so "similar" means similar meaning. Until the model has loaded, the page falls back to hashing words, where similar only means shared words. In production you'd plug in your own embedding model: the repo's loop takes any embed function. Plain approvals are stored but not retrieved: they carry no lesson.</p>
 
   <footer>
     <p><b>Code:</b> <a href="https://github.com/ssap-pa/self-learning-agent-setup">github.com/ssap-pa/self-learning-agent-setup</a> (schema + the TypeScript loop behind this page, MIT). Run it locally: <code>cd demo &amp;&amp; npm install &amp;&amp; npm run demo</code></p>
@@ -116,8 +116,16 @@ returns table (rating smallint, correction text, reason text, situation text, si
 $$;`;
 
 const DIM = 1536;
+// 모델이 오기 전에는 단어 해시, 오면 all-MiniLM-L6-v2(384차원, 0으로 채워 1536에 맞춤: 코사인 값은 같다)
+let model = null;
+let minSim = 0.3;
 const STOP = new Set("a an and are as at be but by can do does for from how i in is it me my of on or our so that the this to us we what when will with you your".split(" "));
 async function embed(text) {
+  if (model) {
+    const out = await model(text, { pooling: "mean", normalize: true });
+    const v = Array.from(out.data);
+    return "[" + v.concat(new Array(DIM - v.length).fill(0)).map((x) => Number(x.toPrecision(7))).join(",") + "]";
+  }
   const v = new Array(DIM).fill(0);
   for (const w of text.toLowerCase().match(/[\p{L}\p{N}']+/gu) ?? []) {
     if (STOP.has(w)) continue;
@@ -140,7 +148,7 @@ async function record(task, draft, rating, correction, reason) {
 }
 
 async function contextFor(task) {
-  const { rows } = await db.query("select * from agent_learning.match_feedback($1::vector, 5, 0.3)", [await embed(task)]);
+  const { rows } = await db.query("select * from agent_learning.match_feedback($1::vector, 5, $2)", [await embed(task), minSim]);
   if (!rows.length) return "(nothing yet: no feedback on anything similar)";
   return ["Feedback on similar past tasks (most similar first):", ...rows.map((f) => {
     const why = f.reason ? ` (why: ${f.reason})` : "";
@@ -174,10 +182,27 @@ try {
   await record("Is the cedar candle back in stock?", "Yes, it's back!", 1, null, null);
   await renderList();
   await ask();
-  $("status").textContent = "Postgres + pgvector running in this tab";
+  $("status").textContent = "Postgres + pgvector running in this tab · loading the embedding model…";
   $("ask").disabled = false; $("add").disabled = false;
+  loadModel();
 } catch (e) {
   $("status").textContent = "Couldn't start Postgres in this browser: " + e.message;
+}
+
+// 모델을 받으면 저장된 결정을 전부 다시 임베딩하고 기준을 의미 기준으로 바꾼다
+async function loadModel() {
+  try {
+    const { pipeline } = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0/+esm");
+    const m = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", { dtype: "q8" });
+    model = m; minSim = 0.55;
+    const { rows } = await db.query("select id, situation from agent_learning.feedback");
+    for (const r of rows) await db.query("update agent_learning.feedback set situation_embedding = $1::vector where id = $2", [await embed(r.situation), r.id]);
+    $("status").textContent = "Postgres + pgvector + all-MiniLM-L6-v2 embeddings, all running in this tab";
+    await ask();
+  } catch (e) {
+    model = null; minSim = 0.3;
+    $("status").textContent = "Postgres + pgvector running in this tab (word hashing: the embedding model didn't load)";
+  }
 }
 
 $("ask").onclick = ask;

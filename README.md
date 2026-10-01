@@ -8,7 +8,7 @@ This repo has the minimal schema and the prompts. The full walkthrough is a free
 
 ## Try it in one minute
 
-**In your browser, no install:** https://ssap-pa.github.io/self-learning-agent-setup/ (Postgres + pgvector running in the tab via PGlite).
+**In your browser, no install:** https://ssap-pa.github.io/self-learning-agent-setup/ (Postgres + pgvector via PGlite and the all-MiniLM-L6-v2 embedding model via Transformers.js, all running in the tab, no API key).
 
 ![Browser demo: a gift-wrap question pulls in the earlier rejection; after storing an edit about unscented candles, a new unscented question pulls in that correction](img/demo.gif)
 
