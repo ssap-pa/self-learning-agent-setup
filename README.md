@@ -61,7 +61,7 @@ And the human part: a Telegram bot sends each draft to my phone with **Approve /
 
 ## More
 
-- **Want the working code?** The Self-Learning Agent Kit has the full schema, a Python library + CLI, a Telegram approval bot that stores every tap before publishing, rule proposals from repeated feedback, an end-to-end example and tests ($39): https://payhip.com/b/grc25
+- **Want the working code?** The Self-Learning Agent Kit has the full schema, Python and TypeScript versions of the library + CLI, a Telegram approval bot that stores every tap before publishing, rule proposals from repeated feedback, an end-to-end example and 26 tests ($39): https://payhip.com/b/grc25
 - **Free field guide (23 pages, PDF):** the full walkthrough with a worked example and a 7-day plan: https://payhip.com/b/QHgfJ
 - **The book:** *Just Say "Do It"*, an 11-step playbook for running a one-person business with AI agents (English edition of my Korean course): https://payhip.com/b/xmZvu
 - **Want it set up around your business?** Done-for-you automation blueprint: https://payhip.com/b/BzSRC
