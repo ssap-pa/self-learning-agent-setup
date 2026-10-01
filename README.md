@@ -41,6 +41,31 @@ Day 3  new comment: "What wax do you use?"
 
 The demo embeds text by hashing words, so "similar" here means shared words. Run `EMBED=openai OPENAI_API_KEY=... npm run demo` to use real embeddings, or point `Loop` at your own Postgres / Supabase with `pg`.
 
+## Use it in Claude Code, Cursor or Claude Desktop (MCP server)
+
+`feedback-memory` is a small MCP server built on the same loop. Your agent calls `recall_corrections` before it drafts and `record_decision` after you approve, edit or reject. Everything lives in a local Postgres (PGlite + pgvector) in `~/.feedback-memory`, so there's nothing to host.
+
+Claude Code:
+
+```
+claude mcp add feedback-memory -- npx -y github:ssap-pa/self-learning-agent-setup
+```
+
+Cursor / Claude Desktop (under `mcpServers` in the config JSON):
+
+```json
+"feedback-memory": { "command": "npx", "args": ["-y", "github:ssap-pa/self-learning-agent-setup"] }
+```
+
+Then tell the agent when to use it, e.g. two lines in `CLAUDE.md` / `AGENTS.md`:
+
+```
+Before drafting anything I'll review, call recall_corrections with the task and follow what comes back.
+When I approve, edit or reject your draft, call record_decision with my reason.
+```
+
+Tools: `recall_corrections`, `record_decision`, `add_rule` (standing rules that always come back first), `list_memory`, `forget`. Set `OPENAI_API_KEY` in the server's env to match by meaning (text-embedding-3-small); without it, words are hashed offline and only shared words match. One database folder per running client (set `FEEDBACK_MEMORY_DIR` if you run several). `npm test` runs an end-to-end test over stdio.
+
 ## The problem
 
 Anyone can pay for the same model you use. What nobody else can buy is:
@@ -105,4 +130,4 @@ And the human part: a Telegram bot sends each draft to my phone with **Approve /
 
 ---
 
-Text and diagrams © 2026 AI SSAPABLE, shared under CC BY-NC 4.0. `schema.sql` and everything in `demo/` are MIT.
+Text and diagrams © 2026 AI SSAPABLE, shared under CC BY-NC 4.0. `schema.sql`, everything in `demo/` and the MCP server in `mcp/` are MIT.
