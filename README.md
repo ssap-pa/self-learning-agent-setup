@@ -144,7 +144,7 @@ And the human part: a Telegram bot sends each draft to my phone with **Approve /
 
 ## More
 
-- **Want the working code?** The Self-Learning Agent Kit has the full schema, Python and TypeScript versions of the library + CLI, a Telegram approval bot that stores every tap before publishing, rule proposals from repeated feedback, an MCP server on your own Postgres / Supabase (shared across machines and teammates), an end-to-end example and 27 tests ($39): https://payhip.com/b/grc25
+- **Need it across machines or a team, or approvals from your phone?** The free plugin keeps its memory in one folder on one machine. The Self-Learning Agent Kit runs the same loop on your own Postgres / Supabase so every machine and teammate shares one memory, adds a Telegram bot to approve / edit / reject from your phone (every tap is stored before anything publishes), proposes rules from reasons that keep coming back, and ships Python and TypeScript versions of the library + CLI, an MCP server, an end-to-end example and 27 tests ($39): https://payhip.com/b/grc25
 - **Prefer video?** A free 22-minute lesson where I build this system with an agent (Korean audio, English subtitles, no account): https://ssapable.com/courses/ai-agent?lang=en&utm_source=github&utm_medium=readme#free-preview
 - **Free field guide (23 pages, PDF):** the full walkthrough with a worked example and a 7-day plan: https://payhip.com/b/QHgfJ
 - **The book:** *Just Say "Do It"*, an 11-step playbook for running a one-person business with AI agents (English edition of my Korean course): https://payhip.com/b/xmZvu
@@ -152,4 +152,4 @@ And the human part: a Telegram bot sends each draft to my phone with **Approve /
 
 ---
 
-Text and diagrams © 2026 AI SSAPABLE, shared under CC BY-NC 4.0. `schema.sql`, everything in `demo/` and the MCP server in `mcp/` are MIT.
+Text and diagrams (this README, `prompts.md`, `img/`) © 2026 AI SSAPABLE, shared under CC BY-NC 4.0. The MIT License in `LICENSE` covers the code: `schema.sql`, `demo/`, `docs/`, `mcp/`, `hooks/`, `bundle/` and `.claude-plugin/`.
