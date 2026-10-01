@@ -50,11 +50,11 @@ The demo embeds text by hashing words, so "similar" here means shared words. Run
 Claude Code, as a plugin (the easiest way). Your standing rules load when a session starts (and again after `/clear` or compaction), and the closest past corrections are added to each prompt by a hook, so they apply even when Claude doesn't call a tool:
 
 ```
-/plugin marketplace add ssap-pa/self-learning-agent-setup
+/plugin marketplace add https://github.com/ssap-pa/self-learning-agent-setup.git
 /plugin install feedback-memory@ssap-pa
 ```
 
-If adding the marketplace fails with an SSH error (no SSH key for GitHub), use the HTTPS URL: `/plugin marketplace add https://github.com/ssap-pa/self-learning-agent-setup.git`.
+(The short form `/plugin marketplace add ssap-pa/self-learning-agent-setup` works too if you have an SSH key set up for GitHub.)
 
 In a real run with the plugin, Claude made no tool calls and still answered a new "how long does shipping to Canada take?" comment with "Thanks for asking. Shipping to Canada usually takes 5-7 business days for the lavender set.": the shipping time from a past edit (reason: don't promise speed) and no exclamation marks, from a stored rule.
 

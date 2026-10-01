@@ -110,13 +110,14 @@ limit 5;</pre>
   <p class="muted" style="font-size:.88rem">Embeddings come from <b>all-MiniLM-L6-v2</b> running in this tab (<a href="https://huggingface.co/docs/transformers.js">Transformers.js</a>, a 23 MB download the first time), so "similar" means similar meaning. Until the model has loaded, the page falls back to hashing words, where similar only means shared words. In production you'd plug in your own embedding model: the repo's loop takes any embed function. Plain approvals are stored but not retrieved: they carry no lesson.</p>
 
   <h2>Use the same loop in Claude Code, Cursor or Claude Desktop</h2>
-  <p>It ships as a small MCP server: your agent calls <code>recall_corrections</code> before it drafts and <code>record_decision</code> after you approve, edit or reject. Local Postgres + pgvector on your machine, nothing to host.</p>
-  <pre id="mcpcmd">claude mcp add feedback-memory -- npx -y github:ssap-pa/self-learning-agent-setup</pre>
-  <div class="row"><button id="copymcp">Copy</button><span class="muted" style="font-size:.85rem">Cursor / Claude Desktop: <code>"command": "npx", "args": ["-y", "github:ssap-pa/self-learning-agent-setup"]</code></span></div>
+  <p>In Claude Code it's a plugin: your standing rules load when a session starts, and the closest past corrections are added to each prompt by a hook, so they apply even when Claude doesn't call a tool. Its MCP tools record new decisions (<code>record_decision</code> after you approve, edit or reject). Local Postgres + pgvector on your machine, nothing to host. Run these two lines in Claude Code, one at a time:</p>
+  <pre id="mcpcmd">/plugin marketplace add https://github.com/ssap-pa/self-learning-agent-setup.git
+/plugin install feedback-memory@ssap-pa</pre>
+  <div class="row"><button id="copymcp">Copy</button><span class="muted" style="font-size:.85rem">MCP server only (Claude Code, Cursor): <code>claude mcp add feedback-memory -- npx -y github:ssap-pa/self-learning-agent-setup</code> · Claude Desktop: <a href="https://github.com/ssap-pa/self-learning-agent-setup/releases/latest/download/feedback-memory.mcpb">one-click bundle</a></span></div>
 
   <footer>
     <p><b>Code:</b> <a href="https://github.com/ssap-pa/self-learning-agent-setup">github.com/ssap-pa/self-learning-agent-setup</a> (schema + the TypeScript loop behind this page, MIT). Run it locally: <code>cd demo &amp;&amp; npm install &amp;&amp; npm run demo</code></p>
-    <p><b>The complete system</b> (MCP server on your own Postgres / Supabase, Telegram approval bot, rule proposals from repeated reasons, Python + TypeScript, 27 tests): <a href="https://payhip.com/b/grc25">Self-Learning Agent Kit</a> · <b>Free 23-page guide:</b> <a href="https://payhip.com/b/QHgfJ">The Self-Learning Agent Setup</a></p>
+    <p><b>The complete system</b> (MCP server and Claude Code plugin on your own Postgres / Supabase, Telegram approval bot, rule proposals from repeated reasons, Python + TypeScript, 28 tests): <a href="https://payhip.com/b/grc25">Self-Learning Agent Kit</a> · <b>Free 23-page guide:</b> <a href="https://payhip.com/b/QHgfJ">The Self-Learning Agent Setup</a></p>
   </footer>
 </main>
 
