@@ -8,6 +8,10 @@ This repo has the minimal schema and the prompts. The full walkthrough is a free
 
 ## Try it in one minute
 
+**In your browser, no install:** https://ssap-pa.github.io/self-learning-agent-setup/ (Postgres + pgvector running in the tab via PGlite).
+
+**Locally:**
+
 ```
 git clone https://github.com/ssap-pa/self-learning-agent-setup
 cd self-learning-agent-setup/demo

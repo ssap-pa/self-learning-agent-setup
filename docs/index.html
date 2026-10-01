@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Feedback Loop Demo</title>
+<meta name="description" content="A self-learning agent loop running in your browser: Postgres (PGlite) + pgvector in WebAssembly. Store approve / edit / reject decisions and see what the agent reads before its next draft.">
+<style>
+  :root {
+    --bg: #fafaf8; --fg: #1b1b1b; --muted: #666; --card: #ffffff; --line: #e4e2dc;
+    --accent: #b8860b; --accent-bg: #fff6cc; --code-bg: #f3f1ea; --ok: #2e7d32; --bad: #c62828; --edit: #8a5a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111; --fg: #ececec; --muted: #a0a0a0; --card: #1a1a1a; --line: #2c2c2c;
+      --accent: #ffd400; --accent-bg: #2b2600; --code-bg: #161616; --ok: #81c784; --bad: #ef9a9a; --edit: #ffcc80;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111; --fg: #ececec; --muted: #a0a0a0; --card: #1a1a1a; --line: #2c2c2c;
+    --accent: #ffd400; --accent-bg: #2b2600; --code-bg: #161616; --ok: #81c784; --bad: #ef9a9a; --edit: #ffcc80;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 820px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 8px; }
+  h2 { font-size: 1.1rem; margin: 32px 0 10px; }
+  p { margin: 8px 0; }
+  .muted { color: var(--muted); }
+  .status { display: inline-block; padding: 4px 10px; border-radius: 999px; background: var(--accent-bg); color: var(--fg); font-size: .85rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin: 10px 0; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .tag { font-size: .78rem; font-weight: 600; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); }
+  .tag.approve { color: var(--ok); } .tag.reject { color: var(--bad); } .tag.edit { color: var(--edit); }
+  label { display: block; font-size: .85rem; color: var(--muted); margin: 10px 0 4px; }
+  input[type=text], textarea, select { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
+  textarea { min-height: 54px; resize: vertical; }
+  button { font: inherit; font-weight: 600; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); cursor: pointer; }
+  button.primary { background: var(--accent); color: #111; border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px; white-space: pre-wrap; word-break: break-word; font: 14px/1.5 ui-monospace, Consolas, monospace; margin: 10px 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } h1 { font-size: 1.4rem; } }
+  footer { margin-top: 40px; border-top: 1px solid var(--line); padding-top: 16px; font-size: .92rem; }
+  a { color: inherit; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+  .sim { color: var(--muted); font-size: .8rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Your agent should remember your corrections</h1>
+  <p>This page runs a real Postgres (<a href="https://pglite.dev">PGlite</a>, compiled to WebAssembly) with <b>pgvector</b> inside this tab. Every approve, edit and reject is stored with an embedding of the task. Before the next draft, the agent pulls feedback from <i>similar</i> past tasks into its prompt. Nothing leaves your browser.</p>
+  <p><span id="status" class="status">Starting Postgres in your browser…</span></p>
+
+  <h2>1. What the agent reads before drafting</h2>
+  <p class="muted">Type a new customer comment. The sample data below is a made-up candle shop.</p>
+  <div class="row">
+    <input type="text" id="query" value="How long does shipping to Canada take for the lavender set?" aria-label="New comment">
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button class="primary" id="ask" disabled>Show the agent's context</button>
+    <span class="muted" style="font-size:.85rem">Try: "Could you gift wrap a candle?" or "What wax do you use?"</span>
+  </div>
+  <pre id="context">…</pre>
+
+  <h2>2. Stored decisions</h2>
+  <div id="list"></div>
+
+  <h2>3. Add your own decision</h2>
+  <div class="card">
+    <div class="grid">
+      <div><label for="task">Comment the agent replied to</label><input type="text" id="task" placeholder="Do you have unscented candles?"></div>
+      <div><label for="draft">Agent's draft</label><input type="text" id="draft" placeholder="Yes!! All of them!!"></div>
+    </div>
+    <div class="grid">
+      <div><label for="decision">Your decision</label>
+        <select id="decision"><option value="0">Edit</option><option value="-1">Reject</option><option value="1">Approve</option></select></div>
+      <div><label for="reason">Why (one line, optional)</label><input type="text" id="reason" placeholder="only two are unscented, name them"></div>
+    </div>
+    <label for="correction">Corrected text (for edits)</label>
+    <textarea id="correction" placeholder="We have two: Fig and Sea Salt."></textarea>
+    <div class="row" style="margin-top:10px"><button class="primary" id="add" disabled>Store decision</button><span id="addmsg" class="muted"></span></div>
+  </div>
+
+  <p class="muted" style="font-size:.88rem">This page embeds text by hashing words, so "similar" means shared words. In production you'd use a real embedding model (the repo's loop takes any embed function). Plain approvals are stored but not retrieved: they carry no lesson.</p>
+
+  <footer>
+    <p><b>Code:</b> <a href="https://github.com/ssap-pa/self-learning-agent-setup">github.com/ssap-pa/self-learning-agent-setup</a> (schema + the TypeScript loop behind this page, MIT). Run it locally: <code>cd demo &amp;&amp; npm install &amp;&amp; npm run demo</code></p>
+    <p><b>The complete system</b> (Telegram approval bot, rule proposals from repeated reasons, Python + TypeScript, 26 tests): <a href="https://payhip.com/b/grc25">Self-Learning Agent Kit</a> · <b>Free 23-page guide:</b> <a href="https://payhip.com/b/QHgfJ">The Self-Learning Agent Setup</a></p>
+  </footer>
+</main>
+
+<script type="module">
+import { PGlite } from "https://cdn.jsdelivr.net/npm/@electric-sql/pglite@0.5.8/dist/index.js";
+import { vector } from "https://cdn.jsdelivr.net/npm/@electric-sql/pglite-pgvector@0.0.9/dist/index.js";
+
+const SCHEMA = `
+create extension if not exists vector;
+create schema if not exists agent_learning;
+create table agent_learning.runs (id uuid primary key default gen_random_uuid(), goal text not null, task text not null, output text,
+  status text not null default 'running', created_at timestamptz not null default now());
+create table agent_learning.feedback (id uuid primary key default gen_random_uuid(), run_id uuid not null references agent_learning.runs(id) on delete cascade,
+  rating smallint not null check (rating between -1 and 1), correction text, reason text, situation text not null,
+  situation_embedding vector(1536), created_at timestamptz not null default now(), check (rating <> 0 or correction is not null));
+create or replace function agent_learning.match_feedback(q vector(1536), k int, min_sim double precision)
+returns table (rating smallint, correction text, reason text, situation text, similarity double precision) language sql stable as $$
+  select f.rating, f.correction, f.reason, f.situation, 1 - (f.situation_embedding <=> q)
+  from agent_learning.feedback f
+  where (f.rating <= 0 or f.reason is not null) and 1 - (f.situation_embedding <=> q) >= min_sim
+  order by f.situation_embedding <=> q limit k;
+$$;`;
+
+const DIM = 1536;
+const STOP = new Set("a an and are as at be but by can do does for from how i in is it me my of on or our so that the this to us we what when will with you your".split(" "));
+async function embed(text) {
+  const v = new Array(DIM).fill(0);
+  for (const w of text.toLowerCase().match(/[\p{L}\p{N}']+/gu) ?? []) {
+    if (STOP.has(w)) continue;
+    const h = new DataView(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(w)));
+    const n = h.getBigUint64(0);
+    v[Number(n % BigInt(DIM))] += (n >> 63n) === 0n ? 1 : -1;
+  }
+  const norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0)) || 1;
+  return "[" + v.map((x) => Number((x / norm).toPrecision(7))).join(",") + "]";
+}
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let db;
+
+async function record(task, draft, rating, correction, reason) {
+  const { rows: [run] } = await db.query("insert into agent_learning.runs (goal, task, output) values ('reply to comments', $1, $2) returning id", [task, draft]);
+  await db.query(`insert into agent_learning.feedback (run_id, rating, correction, reason, situation, situation_embedding)
+                  values ($1, $2, $3, $4, $5, $6::vector)`, [run.id, rating, correction || null, reason || null, task, await embed(task)]);
+}
+
+async function contextFor(task) {
+  const { rows } = await db.query("select * from agent_learning.match_feedback($1::vector, 5, 0.3)", [await embed(task)]);
+  if (!rows.length) return "(nothing yet: no feedback on anything similar)";
+  return ["Feedback on similar past tasks (most similar first):", ...rows.map((f) => {
+    const why = f.reason ? ` (why: ${f.reason})` : "";
+    const verdict = f.rating === 0 ? `edited to: "${f.correction}"${why}` : f.rating < 0 ? `rejected${why}` : `approved (note: ${f.reason})`;
+    return `- task: "${f.situation}" -> ${verdict}   [similarity ${f.similarity.toFixed(2)}]`;
+  })].join("\n");
+}
+
+async function renderList() {
+  const { rows } = await db.query(`select r.task, r.output, f.rating, f.correction, f.reason from agent_learning.feedback f
+                                   join agent_learning.runs r on r.id = f.run_id order by f.created_at`);
+  $("list").innerHTML = rows.map((r) => {
+    const kind = r.rating === 1 ? "approve" : r.rating === 0 ? "edit" : "reject";
+    const label = { approve: "Approved", edit: "Edited", reject: "Rejected" }[kind];
+    return `<div class="card"><div class="row"><span class="tag ${kind}">${label}</span><b>${esc(r.task)}</b></div>
+      <p class="muted" style="margin:6px 0 0">Draft: ${esc(r.output)}</p>
+      ${r.correction ? `<p style="margin:4px 0 0">Corrected: ${esc(r.correction)}</p>` : ""}
+      ${r.reason ? `<p class="muted" style="margin:4px 0 0">Why: ${esc(r.reason)}</p>` : ""}</div>`;
+  }).join("");
+}
+
+async function ask() { $("context").textContent = await contextFor($("query").value.trim() || " "); }
+
+try {
+  db = await PGlite.create({ extensions: { vector } });
+  await db.exec(SCHEMA);
+  await record("Do you ship to Canada? Love the lavender candle", "Yes we do!!! Super fast shipping everywhere!!", 0,
+    "We do! Canada usually takes 5-7 days.", "don't promise speed, give the real shipping time");
+  await record("Can you gift wrap the vanilla set for my mom?", "Of course!! We gift wrap everything for free!", -1, null,
+    "we don't gift wrap, offer the gift note instead");
+  await record("Is the cedar candle back in stock?", "Yes, it's back!", 1, null, null);
+  await renderList();
+  await ask();
+  $("status").textContent = "Postgres + pgvector running in this tab";
+  $("ask").disabled = false; $("add").disabled = false;
+} catch (e) {
+  $("status").textContent = "Couldn't start Postgres in this browser: " + e.message;
+}
+
+$("ask").onclick = ask;
+$("query").onkeydown = (e) => { if (e.key === "Enter") ask(); };
+$("add").onclick = async () => {
+  const task = $("task").value.trim(), draft = $("draft").value.trim(), rating = Number($("decision").value);
+  const correction = $("correction").value.trim(), reason = $("reason").value.trim();
+  if (!task || !draft) { $("addmsg").textContent = "Fill in the comment and the draft."; return; }
+  if (rating === 0 && !correction) { $("addmsg").textContent = "An edit needs the corrected text."; return; }
+  await record(task, draft, rating, correction, reason);
+  $("addmsg").textContent = "Stored. Now ask about a similar comment above.";
+  $("query").value = task; await renderList(); await ask();
+};
+</script>
+</body>
+</html>
