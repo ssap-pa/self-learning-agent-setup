@@ -54,6 +54,8 @@ Claude Code, as a plugin (the easiest way). Your standing rules load when a sess
 /plugin install feedback-memory@ssap-pa
 ```
 
+If adding the marketplace fails with an SSH error (no SSH key for GitHub), use the HTTPS URL: `/plugin marketplace add https://github.com/ssap-pa/self-learning-agent-setup.git`.
+
 In a real run with the plugin, Claude made no tool calls and still answered a new "how long does shipping to Canada take?" comment with "Thanks for asking. Shipping to Canada usually takes 5-7 business days for the lavender set.": the shipping time from a past edit (reason: don't promise speed) and no exclamation marks, from a stored rule.
 
 Claude Code, MCP server only:
