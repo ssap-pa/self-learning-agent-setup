@@ -1,0 +1,19 @@
+{
+  "name": "self-learning-agent-setup-demo",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "demo": "tsx demo.ts",
+    "test": "tsx --test loop.test.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite-pgvector": "^0.0.9"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0"
+  }
+}
