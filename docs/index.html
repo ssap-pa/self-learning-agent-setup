@@ -67,6 +67,26 @@
     <span class="muted" style="font-size:.85rem">Try: "Can I get it wrapped as a present?" (no words in common with the stored gift-wrap question) or "What wax do you use?"</span>
   </div>
   <pre id="context">…</pre>
+  <details class="muted" style="font-size:.88rem"><summary>The SQL behind it</summary>
+<pre>-- every approve / edit / reject is a row, with an embedding of the task
+create table agent_learning.feedback (
+  id uuid primary key default gen_random_uuid(),
+  run_id uuid not null references agent_learning.runs(id),
+  rating smallint not null check (rating between -1 and 1),
+  correction text, reason text, situation text not null,
+  situation_embedding vector(1536),
+  created_at timestamptz not null default now()
+);
+
+-- before the next draft: closest past corrections (plain approvals carry no lesson)
+select f.rating, f.correction, f.reason, f.situation,
+       1 - (f.situation_embedding &lt;=&gt; $1) as similarity
+from agent_learning.feedback f
+where (f.rating &lt;= 0 or f.reason is not null)
+  and 1 - (f.situation_embedding &lt;=&gt; $1) &gt;= $2
+order by f.situation_embedding &lt;=&gt; $1
+limit 5;</pre>
+  Same schema works on Supabase or any Postgres with pgvector: <a href="https://github.com/ssap-pa/self-learning-agent-setup/blob/main/schema.sql">schema.sql</a></details>
 
   <h2>2. Stored decisions</h2>
   <div id="list"></div>
@@ -148,13 +168,16 @@ async function record(task, draft, rating, correction, reason) {
 }
 
 async function contextFor(task) {
-  const { rows } = await db.query("select * from agent_learning.match_feedback($1::vector, 5, $2)", [await embed(task), minSim]);
-  if (!rows.length) return "(nothing yet: no feedback on anything similar)";
+  const q = await embed(task);
+  const t0 = performance.now();
+  const { rows } = await db.query("select * from agent_learning.match_feedback($1::vector, 5, $2)", [q, minSim]);
+  const took = `\n\n(pgvector search in this tab: ${(performance.now() - t0).toFixed(1)} ms)`;
+  if (!rows.length) return "(nothing yet: no feedback on anything similar)" + took;
   return ["Feedback on similar past tasks (most similar first):", ...rows.map((f) => {
     const why = f.reason ? ` (why: ${f.reason})` : "";
     const verdict = f.rating === 0 ? `edited to: "${f.correction}"${why}` : f.rating < 0 ? `rejected${why}` : `approved (note: ${f.reason})`;
     return `- task: "${f.situation}" -> ${verdict}   [similarity ${f.similarity.toFixed(2)}]`;
-  })].join("\n");
+  })].join("\n") + took;
 }
 
 async function renderList() {
