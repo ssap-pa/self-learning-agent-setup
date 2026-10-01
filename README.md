@@ -1,5 +1,7 @@
 # Self-Learning Agent Setup
 
+[![test](https://github.com/ssap-pa/self-learning-agent-setup/actions/workflows/test.yml/badge.svg)](https://github.com/ssap-pa/self-learning-agent-setup/actions/workflows/test.yml)
+
 A small, practical pattern for making an AI agent **remember your business** and **learn from every correction you give it**. No framework required: a folder of brand files, your existing database, and a feedback table.
 
 I run a one-person education business in Korea this way. Agents (Claude Code, Codex) draft posts and replies. I approve, edit or reject them from my phone. Every decision goes into a database, and the next draft reads that history before it writes a word.
