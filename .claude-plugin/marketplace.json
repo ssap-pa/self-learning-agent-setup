@@ -1,0 +1,12 @@
+{
+  "name": "ssap-pa",
+  "owner": { "name": "ssap-pa (AI SSAPABLE)", "url": "https://github.com/ssap-pa" },
+  "description": "feedback-memory: a memory for the reasons behind your approve / edit / reject decisions",
+  "plugins": [
+    {
+      "name": "feedback-memory",
+      "source": ".",
+      "description": "Remembers why you approved, edited or rejected Claude's drafts and brings the closest past corrections back before the next draft."
+    }
+  ]
+}

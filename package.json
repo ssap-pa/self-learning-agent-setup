@@ -1,13 +1,13 @@
 {
   "name": "feedback-memory-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server that makes coding agents remember your approve / edit / reject decisions and read the closest past corrections before they draft. Local Postgres + pgvector (PGlite), nothing to host.",
   "type": "module",
   "license": "MIT",
   "bin": { "feedback-memory-mcp": "mcp/server.mjs" },
-  "files": ["mcp/server.mjs", "schema.sql"],
+  "files": ["mcp/server.mjs", "mcp/hash-embed.mjs", "schema.sql"],
   "engines": { "node": ">=18" },
-  "scripts": { "test": "node --test mcp/server.test.mjs", "bundle": "sh bundle/build.sh" },
+  "scripts": { "test": "node --test mcp/server.test.mjs hooks/recall.test.mjs", "bundle": "sh bundle/build.sh" },
   "repository": { "type": "git", "url": "https://github.com/ssap-pa/self-learning-agent-setup" },
   "keywords": ["mcp", "model-context-protocol", "claude-code", "agent-memory", "feedback", "pgvector", "pglite"],
   "dependencies": {

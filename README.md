@@ -47,7 +47,16 @@ The demo embeds text by hashing words, so "similar" here means shared words. Run
 
 `feedback-memory` is a small MCP server built on the same loop. Your agent calls `recall_corrections` before it drafts and `record_decision` after you approve, edit or reject. Everything lives in a local Postgres (PGlite + pgvector) in `~/.feedback-memory`, so there's nothing to host.
 
-Claude Code:
+Claude Code, as a plugin (the easiest way). Your standing rules load when a session starts (and again after `/clear` or compaction), and the closest past corrections are added to each prompt by a hook, so they apply even when Claude doesn't call a tool:
+
+```
+/plugin marketplace add ssap-pa/self-learning-agent-setup
+/plugin install feedback-memory@ssap-pa
+```
+
+In a real run with the plugin, Claude made no tool calls and still answered a new "how long does shipping to Canada take?" comment with "Thanks for asking. Shipping to Canada usually takes 5-7 business days for the lavender set.": the shipping time from a past edit (reason: don't promise speed) and no exclamation marks, from a stored rule.
+
+Claude Code, MCP server only:
 
 ```
 claude mcp add feedback-memory -- npx -y github:ssap-pa/self-learning-agent-setup
@@ -70,7 +79,7 @@ When I approve, edit or reject your draft, call record_decision with my reason.
 
 ![A real run: Claude Code records an edit with the reason, then drafts the next release note the same way](img/mcp-real-run.png)
 
-Tools: `recall_corrections`, `record_decision`, `add_rule` (standing rules that always come back first), `list_memory`, `forget`. Set `OPENAI_API_KEY` in the server's env to match by meaning (text-embedding-3-small); without it, words are hashed offline and only shared words match. One database folder per running client (set `FEEDBACK_MEMORY_DIR` if you run several). `npm test` runs an end-to-end test over stdio, and `npm run bundle` builds the Claude Desktop bundle.
+Tools: `recall_corrections`, `record_decision`, `add_rule` (standing rules that always come back first), `list_memory`, `forget`. Set `OPENAI_API_KEY` in the server's env to match by meaning (text-embedding-3-small); without it, words are hashed offline and only shared words match. One database folder per running client (set `FEEDBACK_MEMORY_DIR` if you run several), so install it one way, not as both the plugin and a separate MCP server. `npm test` runs an end-to-end test over stdio, and `npm run bundle` builds the Claude Desktop bundle.
 
 If it helps, a star on the repo helps other people find it, and an issue about what didn't work helps me fix it.
 

@@ -9,8 +9,11 @@
 //   FEEDBACK_MEMORY_DIR  where the database lives (default ~/.feedback-memory)
 //   OPENAI_API_KEY       if set, embeddings use text-embedding-3-small (matches by meaning);
 //                        otherwise words are hashed offline (matches shared words only)
-import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync } from "node:fs";
+//
+// It also keeps snapshot.json next to the database: a plain copy of the rules and the recallable
+// decisions, read by the Claude Code plugin's hooks (hooks/recall.mjs), which can't open the
+// database while this server has it open.
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
@@ -18,26 +21,14 @@ import { vector } from "@electric-sql/pglite-pgvector";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { HASH_MIN_SIM, hashEmbed } from "./hash-embed.mjs";
 
-const DIM = 1536;
 const DIR = process.env.FEEDBACK_MEMORY_DIR || join(homedir(), ".feedback-memory");
 // An optional key left blank in a Claude Desktop bundle can arrive as "" or as an unfilled
 // "${user_config...}" placeholder. Both mean "no key".
 const OPENAI_KEY = (process.env.OPENAI_API_KEY ?? "").trim().replace(/^\$\{.*\}$/, "");
 const EMBEDDER = OPENAI_KEY ? "openai:text-embedding-3-small" : "hash-v1";
 const GOAL = "work for the user";
-
-const STOP = new Set("a an and are as at be but by can do does for from how i in is it me my of on or our so that the this to us we what when will with you your".split(" "));
-function hashEmbed(text) {
-  const v = new Array(DIM).fill(0);
-  for (const w of text.toLowerCase().match(/[\p{L}\p{N}']+/gu) ?? []) {
-    if (STOP.has(w)) continue;
-    const n = createHash("sha256").update(w).digest().readBigUInt64BE(0);
-    v[Number(n % BigInt(DIM))] += (n >> 63n) === 0n ? 1 : -1;
-  }
-  const norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0)) || 1;
-  return v.map((x) => x / norm);
-}
 
 async function openaiEmbed(text) {
   const res = await fetch("https://api.openai.com/v1/embeddings", {
@@ -53,8 +44,7 @@ const embed = async (text) => {
   const v = EMBEDDER === "hash-v1" ? hashEmbed(text) : await openaiEmbed(text);
   return "[" + v.map((x) => Number(x.toPrecision(7))).join(",") + "]";
 };
-// Word hashing scores lower than a real model for the same pair, so it gets a lower cutoff.
-const MIN_SIM = EMBEDDER === "hash-v1" ? 0.3 : 0.45;
+const MIN_SIM = EMBEDDER === "hash-v1" ? HASH_MIN_SIM : 0.45;
 
 mkdirSync(DIR, { recursive: true });
 const db = await PGlite.create(join(DIR, "pgdata"), { extensions: { vector } });
@@ -69,11 +59,22 @@ if (meta?.value !== EMBEDDER) {
   await db.query("insert into agent_learning.meta (key, value) values ('embedder', $1) on conflict (key) do update set value = excluded.value", [EMBEDDER]);
 }
 
+// Written after every change; renamed into place so a hook never reads a half-written file.
+async function writeSnapshot() {
+  const { rows: rules } = await db.query("select title from agent_learning.rules where status = 'active' order by created_at");
+  const { rows: decisions } = await db.query(
+    "select rating, situation, correction, reason from agent_learning.feedback where rating <= 0 or reason is not null order by created_at desc limit 1000");
+  const tmp = join(DIR, "snapshot.json.tmp");
+  writeFileSync(tmp, JSON.stringify({ version: 1, rules: rules.map((r) => r.title), decisions }));
+  renameSync(tmp, join(DIR, "snapshot.json"));
+}
+await writeSnapshot();
+
 const text = (s) => ({ content: [{ type: "text", text: s }] });
 const RATING = { approve: 1, edit: 0, reject: -1 };
 const STATUS = { 1: "approved", 0: "edited", [-1]: "rejected" };
 
-const server = new McpServer({ name: "feedback-memory", version: "0.1.0" });
+const server = new McpServer({ name: "feedback-memory", version: "0.2.0" });
 
 server.registerTool("recall_corrections", {
   title: "Recall the user's rules and past corrections",
@@ -116,6 +117,7 @@ server.registerTool("record_decision", {
     `insert into agent_learning.feedback (run_id, rating, correction, reason, situation, source, situation_embedding)
      values ($1, $2, $3, $4, $5, 'mcp', $6::vector) returning id`,
     [run.id, rating, corrected_text ?? null, reason ?? null, task, await embed(task)]);
+  await writeSnapshot();
   const note = rating === 1 && !reason ? " A plain approval is kept but not recalled later (it carries no lesson); add a reason if there was one." : "";
   return text(`Stored ${STATUS[rating]} decision ${fb.id}.${note}`);
 });
@@ -127,6 +129,7 @@ server.registerTool("add_rule", {
 }, async ({ rule }) => {
   const { rows: [r] } = await db.query(
     "insert into agent_learning.rules (title, body, status, decided_at) values ($1, $1, 'active', now()) returning id", [rule]);
+  await writeSnapshot();
   return text(`Saved rule ${r.id}.`);
 });
 
@@ -155,6 +158,7 @@ server.registerTool("forget", {
   const r = await db.query("delete from agent_learning.rules where id = $1 returning id", [id]);
   const f = r.rows.length ? { rows: [] } : await db.query(
     "delete from agent_learning.runs where id = (select run_id from agent_learning.feedback where id = $1) returning id", [id]);
+  if (r.rows.length || f.rows.length) await writeSnapshot();
   return text(r.rows.length ? `Deleted rule ${id}.` : f.rows.length ? `Deleted decision ${id}.` : `Nothing found with id ${id}.`);
 });
 

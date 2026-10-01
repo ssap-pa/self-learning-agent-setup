@@ -2,7 +2,7 @@
 //   npm install && npm test
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -44,6 +44,11 @@ test("store decisions, recall similar ones, rules, forget, persistence", async (
   const ruleId = mem.match(/- ([0-9a-f-]{36})  No exclamation/)[1];
   assert.match(await call(c, "forget", { id: ruleId }), /Deleted rule/);
   await c.close();
+
+  // The snapshot the plugin's hooks read: rules and the recallable decisions (not the plain approval).
+  const snap = JSON.parse(readFileSync(join(dir, "snapshot.json"), "utf8"));
+  assert.deepEqual(snap.rules, []);
+  assert.deepEqual(snap.decisions.map((d) => d.rating).sort(), [-1, 0]);
 
   // A new process sees the same database.
   c = await connect();

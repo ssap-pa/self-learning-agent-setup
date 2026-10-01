@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "feedback-memory",
   "display_name": "feedback-memory",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Remembers why you approved, edited or rejected Claude's drafts, and hands the closest past corrections back before the next draft.",
   "long_description": "When you approve, edit or reject a draft, Claude calls `record_decision` with your reason. Before the next draft it calls `recall_corrections` and gets the closest past corrections and your standing rules back, so the same fix doesn't have to be made twice.\n\nEverything lives in a local Postgres (PGlite + pgvector) in `~/.feedback-memory`. Nothing to host, no account. Leave the OpenAI key empty to match by shared words offline, or add one to match by meaning (text-embedding-3-small).\n\nTell Claude when to use it, e.g. in a project's instructions: \"Before drafting anything I'll review, call recall_corrections with the task. When I approve, edit or reject your draft, call record_decision with my reason.\"\n\nOnly one app can open the same database folder at a time, so don't run this bundle and the Claude Code (npx) install at the same time on one machine.",
   "author": {
