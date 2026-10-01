@@ -1,0 +1,53 @@
+{
+  "manifest_version": "0.3",
+  "name": "feedback-memory",
+  "display_name": "feedback-memory",
+  "version": "0.1.0",
+  "description": "Remembers why you approved, edited or rejected Claude's drafts, and hands the closest past corrections back before the next draft.",
+  "long_description": "When you approve, edit or reject a draft, Claude calls `record_decision` with your reason. Before the next draft it calls `recall_corrections` and gets the closest past corrections and your standing rules back, so the same fix doesn't have to be made twice.\n\nEverything lives in a local Postgres (PGlite + pgvector) in `~/.feedback-memory`. Nothing to host, no account. Leave the OpenAI key empty to match by shared words offline, or add one to match by meaning (text-embedding-3-small).\n\nTell Claude when to use it, e.g. in a project's instructions: \"Before drafting anything I'll review, call recall_corrections with the task. When I approve, edit or reject your draft, call record_decision with my reason.\"\n\nOnly one app can open the same database folder at a time, so don't run this bundle and the Claude Code (npx) install at the same time on one machine.",
+  "author": {
+    "name": "ssap-pa (AI SSAPABLE)",
+    "url": "https://github.com/ssap-pa"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ssap-pa/self-learning-agent-setup.git"
+  },
+  "homepage": "https://github.com/ssap-pa/self-learning-agent-setup",
+  "documentation": "https://github.com/ssap-pa/self-learning-agent-setup#use-it-in-claude-code-cursor-or-claude-desktop-mcp-server",
+  "support": "https://github.com/ssap-pa/self-learning-agent-setup/issues",
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "mcp/server.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/mcp/server.mjs"],
+      "env": {
+        "OPENAI_API_KEY": "${user_config.openai_api_key}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "recall_corrections", "description": "Before drafting: return the closest past corrections and standing rules for a task" },
+    { "name": "record_decision", "description": "After you approve, edit or reject a draft: save the decision with your reason" },
+    { "name": "add_rule", "description": "Save a standing rule that always comes back first" },
+    { "name": "list_memory", "description": "Show what is stored" },
+    { "name": "forget", "description": "Delete a stored decision or rule" }
+  ],
+  "keywords": ["memory", "feedback", "corrections", "agent-memory", "pgvector", "pglite"],
+  "license": "MIT",
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": { "node": ">=18.0.0" }
+  },
+  "user_config": {
+    "openai_api_key": {
+      "type": "string",
+      "title": "OpenAI API key (optional)",
+      "description": "Leave empty to match by shared words, offline. With a key, corrections are matched by meaning (text-embedding-3-small).",
+      "sensitive": true,
+      "required": false
+    }
+  }
+}

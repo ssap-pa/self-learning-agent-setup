@@ -53,3 +53,14 @@ test("store decisions, recall similar ones, rules, forget, persistence", async (
   await c.close();
   rmSync(dir, { recursive: true, force: true });
 });
+
+test("a blank key from a Claude Desktop bundle (unfilled placeholder) falls back to offline hashing", { timeout: 60_000 }, async () => {
+  const d = mkdtempSync(join(tmpdir(), "feedback-memory-"));
+  const c = new Client({ name: "test", version: "0" });
+  await c.connect(new StdioClientTransport({ command: process.execPath, args: [new URL("./server.mjs", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")],
+    env: { ...env, FEEDBACK_MEMORY_DIR: d, OPENAI_API_KEY: "${user_config.openai_api_key}" } }));
+  assert.match(await call(c, "record_decision", { task: "Reply to: do you ship to Canada?", decision: "reject", reason: "we only ship in Korea" }), /Stored rejected/);
+  assert.match(await call(c, "list_memory", {}), /embeddings: hash-v1/);
+  await c.close();
+  rmSync(d, { recursive: true, force: true });
+});

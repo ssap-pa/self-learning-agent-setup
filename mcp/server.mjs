@@ -21,7 +21,10 @@ import { z } from "zod";
 
 const DIM = 1536;
 const DIR = process.env.FEEDBACK_MEMORY_DIR || join(homedir(), ".feedback-memory");
-const EMBEDDER = process.env.OPENAI_API_KEY ? "openai:text-embedding-3-small" : "hash-v1";
+// An optional key left blank in a Claude Desktop bundle can arrive as "" or as an unfilled
+// "${user_config...}" placeholder. Both mean "no key".
+const OPENAI_KEY = (process.env.OPENAI_API_KEY ?? "").trim().replace(/^\$\{.*\}$/, "");
+const EMBEDDER = OPENAI_KEY ? "openai:text-embedding-3-small" : "hash-v1";
 const GOAL = "work for the user";
 
 const STOP = new Set("a an and are as at be but by can do does for from how i in is it me my of on or our so that the this to us we what when will with you your".split(" "));
@@ -39,7 +42,7 @@ function hashEmbed(text) {
 async function openaiEmbed(text) {
   const res = await fetch("https://api.openai.com/v1/embeddings", {
     method: "POST",
-    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${OPENAI_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model: "text-embedding-3-small", input: text.slice(0, 8000) }),
   });
   if (!res.ok) throw new Error(`OpenAI embeddings: HTTP ${res.status}`);

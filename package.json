@@ -7,7 +7,7 @@
   "bin": { "feedback-memory-mcp": "mcp/server.mjs" },
   "files": ["mcp/server.mjs", "schema.sql"],
   "engines": { "node": ">=18" },
-  "scripts": { "test": "node --test mcp/server.test.mjs" },
+  "scripts": { "test": "node --test mcp/server.test.mjs", "bundle": "sh bundle/build.sh" },
   "repository": { "type": "git", "url": "https://github.com/ssap-pa/self-learning-agent-setup" },
   "keywords": ["mcp", "model-context-protocol", "claude-code", "agent-memory", "feedback", "pgvector", "pglite"],
   "dependencies": {
