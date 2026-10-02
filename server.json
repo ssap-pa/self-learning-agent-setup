@@ -1,0 +1,35 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ssap-pa/feedback-memory",
+  "title": "feedback-memory",
+  "description": "Remembers why you approved, edited or rejected your agent's drafts; recalls the closest corrections",
+  "version": "0.2.0",
+  "repository": {
+    "url": "https://github.com/ssap-pa/self-learning-agent-setup",
+    "source": "github"
+  },
+  "websiteUrl": "https://ssap-pa.github.io/self-learning-agent-setup/",
+  "packages": [
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/ssap-pa/self-learning-agent-setup/releases/download/v0.2.0/feedback-memory.mcpb",
+      "fileSha256": "238da40197b533b2c45950a89cf90d6a6512433c70d4a3b7853e999cd6f3033f",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "OPENAI_API_KEY",
+          "description": "Optional. Match by meaning (text-embedding-3-small); empty means offline word hashing",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "FEEDBACK_MEMORY_DIR",
+          "description": "Where the database lives (default ~/.feedback-memory)",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}
