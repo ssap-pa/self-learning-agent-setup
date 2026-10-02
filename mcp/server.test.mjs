@@ -64,8 +64,11 @@ test("a blank key from a Claude Desktop bundle (unfilled placeholder) falls back
   const c = new Client({ name: "test", version: "0" });
   await c.connect(new StdioClientTransport({ command: process.execPath, args: [new URL("./server.mjs", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")],
     env: { ...env, FEEDBACK_MEMORY_DIR: d, OPENAI_API_KEY: "${user_config.openai_api_key}" } }));
-  assert.match(await call(c, "record_decision", { task: "Reply to: do you ship to Canada?", decision: "reject", reason: "we only ship in Korea" }), /Stored rejected/);
-  assert.match(await call(c, "list_memory", {}), /embeddings: hash-v1/);
-  await c.close();
-  rmSync(d, { recursive: true, force: true });
+  try {
+    assert.match(await call(c, "record_decision", { task: "Reply to: do you ship to Canada?", decision: "reject", reason: "we only ship in Korea" }), /Stored rejected/);
+    assert.match(await call(c, "list_memory", {}), /embeddings: hash-v\d/);
+  } finally {
+    await c.close(); // a failed assertion must not leave the server running (the runner would hang)
+    rmSync(d, { recursive: true, force: true });
+  }
 });

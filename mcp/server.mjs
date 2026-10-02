@@ -21,13 +21,13 @@ import { vector } from "@electric-sql/pglite-pgvector";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { HASH_MIN_SIM, hashEmbed } from "./hash-embed.mjs";
+import { HASH_EMBEDDER, HASH_MIN_SIM, hashEmbed } from "./hash-embed.mjs";
 
 const DIR = process.env.FEEDBACK_MEMORY_DIR || join(homedir(), ".feedback-memory");
 // An optional key left blank in a Claude Desktop bundle can arrive as "" or as an unfilled
 // "${user_config...}" placeholder. Both mean "no key".
 const OPENAI_KEY = (process.env.OPENAI_API_KEY ?? "").trim().replace(/^\$\{.*\}$/, "");
-const EMBEDDER = OPENAI_KEY ? "openai:text-embedding-3-small" : "hash-v1";
+const EMBEDDER = OPENAI_KEY ? "openai:text-embedding-3-small" : HASH_EMBEDDER;
 const GOAL = "work for the user";
 
 async function openaiEmbed(text) {
@@ -41,10 +41,10 @@ async function openaiEmbed(text) {
 }
 
 const embed = async (text) => {
-  const v = EMBEDDER === "hash-v1" ? hashEmbed(text) : await openaiEmbed(text);
+  const v = EMBEDDER === HASH_EMBEDDER ? hashEmbed(text) : await openaiEmbed(text);
   return "[" + v.map((x) => Number(x.toPrecision(7))).join(",") + "]";
 };
-const MIN_SIM = EMBEDDER === "hash-v1" ? HASH_MIN_SIM : 0.45;
+const MIN_SIM = EMBEDDER === HASH_EMBEDDER ? HASH_MIN_SIM : 0.45;
 
 mkdirSync(DIR, { recursive: true });
 const db = await PGlite.create(join(DIR, "pgdata"), { extensions: { vector } });
@@ -74,7 +74,7 @@ const text = (s) => ({ content: [{ type: "text", text: s }] });
 const RATING = { approve: 1, edit: 0, reject: -1 };
 const STATUS = { 1: "approved", 0: "edited", [-1]: "rejected" };
 
-const server = new McpServer({ name: "feedback-memory", version: "0.2.0" });
+const server = new McpServer({ name: "feedback-memory", version: "0.2.1" });
 
 server.registerTool("recall_corrections", {
   title: "Recall the user's rules and past corrections",

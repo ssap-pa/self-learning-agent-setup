@@ -1,6 +1,6 @@
 {
   "name": "feedback-memory",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Remembers why you approved, edited or rejected Claude's drafts. Your standing rules load at session start, the closest past corrections are added to each prompt, and MCP tools record new decisions.",
   "author": { "name": "ssap-pa (AI SSAPABLE)", "url": "https://github.com/ssap-pa" },
   "homepage": "https://github.com/ssap-pa/self-learning-agent-setup",

@@ -83,7 +83,7 @@ When I approve, edit or reject your draft, call record_decision with my reason.
 
 ![A real run: Claude Code records an edit with the reason, then drafts the next release note the same way](img/mcp-real-run.png)
 
-Tools: `recall_corrections`, `record_decision`, `add_rule` (standing rules that always come back first), `list_memory`, `forget`. Set `OPENAI_API_KEY` in the server's env to match by meaning (text-embedding-3-small); without it, words are hashed offline and only shared words match. One database folder per running client (set `FEEDBACK_MEMORY_DIR` if you run several), so install it one way, not as both the plugin and a separate MCP server. `npm test` runs an end-to-end test over stdio, and `npm run bundle` builds the Claude Desktop bundle.
+Tools: `recall_corrections`, `record_decision`, `add_rule` (standing rules that always come back first), `list_memory`, `forget`. Set `OPENAI_API_KEY` in the server's env to match by meaning (text-embedding-3-small); without it, words are hashed offline (with light stemming, so "shipping" matches "ship") and only shared words match. One database folder per running client (set `FEEDBACK_MEMORY_DIR` if you run several), so install it one way, not as both the plugin and a separate MCP server. `npm test` runs an end-to-end test over stdio, and `npm run bundle` builds the Claude Desktop bundle.
 
 If it helps, a star on the repo helps other people find it, and an issue about what didn't work helps me fix it.
 

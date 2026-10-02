@@ -3,7 +3,7 @@
   "name": "io.github.ssap-pa/feedback-memory",
   "title": "feedback-memory",
   "description": "Remembers why you approved, edited or rejected your agent's drafts; recalls the closest corrections",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "repository": {
     "url": "https://github.com/ssap-pa/self-learning-agent-setup",
     "source": "github"
@@ -12,8 +12,8 @@
   "packages": [
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/ssap-pa/self-learning-agent-setup/releases/download/v0.2.0/feedback-memory.mcpb",
-      "fileSha256": "238da40197b533b2c45950a89cf90d6a6512433c70d4a3b7853e999cd6f3033f",
+      "identifier": "https://github.com/ssap-pa/self-learning-agent-setup/releases/download/v0.2.1/feedback-memory.mcpb",
+      "fileSha256": "f2625e11c8f95f45246b365aaa3d8609111e1e22d1d6a3ad7987136e7d9515a8",
       "transport": {
         "type": "stdio"
       },

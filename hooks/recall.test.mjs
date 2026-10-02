@@ -69,3 +69,10 @@ test("as a process: JSON for Claude Code, nothing when there's nothing to add, n
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("light stemming: 'shipping' finds a past 'do you ship' decision", async () => {
+  const { stem } = await import("../mcp/hash-embed.mjs");
+  assert.deepEqual(["shipping", "ships", "shipped", "replies", "edited", "candles", "wrapping"].map(stem), ["ship", "ship", "ship", "reply", "edit", "candle", "wrap"]);
+  const out = contextFor({ hook_event_name: "UserPromptSubmit", prompt: "Shipping time to Canada?" }, snapshot, new Set());
+  assert.match(out.text, /5-7 days/);
+});
