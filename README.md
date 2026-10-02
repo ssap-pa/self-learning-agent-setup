@@ -1,6 +1,7 @@
 # Self-Learning Agent Setup
 
 [![test](https://github.com/ssap-pa/self-learning-agent-setup/actions/workflows/test.yml/badge.svg)](https://github.com/ssap-pa/self-learning-agent-setup/actions/workflows/test.yml)
+<a href="https://www.producthunt.com/posts/feedback-memory?embed=true&utm_source=badge-featured&utm_medium=badge" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1266394&theme=light" alt="feedback-memory on Product Hunt" width="250" height="54"></a>
 
 A small, practical pattern for making an AI agent **remember your business** and **learn from every correction you give it**. No framework required: a folder of brand files, your existing database, and a feedback table.
 
