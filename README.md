@@ -9,6 +9,8 @@ I run a one-person education business in Korea this way. Agents (Claude Code, Co
 
 This repo has the minimal schema and the prompts. The full walkthrough is a free 23-page field guide (link at the bottom).
 
+> What happened when this agent ran a business for 72 hours with one goal, in numbers: [the postmortem on DEV](https://dev.to/ssapable/i-gave-claude-code-72-hours-and-a-vps-to-make-1000-from-overseas-it-made-0-1oja). Short version: product was never the problem.
+
 ## Try it in one minute
 
 **In your browser, no install:** https://ssap-pa.github.io/self-learning-agent-setup/ (Postgres + pgvector via PGlite and the all-MiniLM-L6-v2 embedding model via Transformers.js, all running in the tab, no API key).
